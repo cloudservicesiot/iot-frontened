@@ -28,6 +28,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import WaterDamageIcon from '@mui/icons-material/WaterDamage';
 // import EditDocumentIcon from '@mui/icons-material/EditDocument';
 import EditIcon from '@mui/icons-material/Edit';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 const Item = ({ title, to, icon, selected, setSelected }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
@@ -135,7 +136,37 @@ const Sidebar = () => {
               selected={selected}
               setSelected={setSelected}
             />
+            <Typography
+              variant="h6"
+              color={colors.grey[300]}
+              sx={{ m: "15px 0 5px 20px" }}
+            >
+              Reports
+                </Typography>
+                <Item
+                  title="Energy Meters R-1"
+                  to="/energy-meters/report-1"
+                  icon={<AssessmentIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                 <Item
+                  title="Energy Meters R-2"
+                  to="/energy-meters/report-2"
+                  icon={<AssessmentIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="AC Report"
+                  to="/ac/report-1"
+                  icon={<AssessmentIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
 
+
+            
             <Typography
               variant="h6"
               color={colors.grey[300]}

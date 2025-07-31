@@ -98,6 +98,9 @@ import WmsMotorsDetail from "./components/waterManagmentSystem/WmsMotorsDetail";
 import EditDevices from "./scenes/form/EditDevices"
 import EditEntities from "./scenes/form/EditEntities";
 import { WebSocketProvider } from './context/useWebsocket';
+import EnergyMeterReport1 from "./components/reports/EnergyMeterReport-1";
+import EnergyMeterReport2 from "./components/reports/EnergyMeterReport-2";
+import ACHistoryReport from "./components/reports/AcReport1";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -136,6 +139,30 @@ function App() {
                     element={
                       <PrivateRoute>
                         <WebSocketComponent />
+                      </PrivateRoute>
+                    }
+                  />
+                  <Route
+                    path="energy-meters/report-1"
+                    element={
+                      <PrivateRoute>
+                        <EnergyMeterReport1 />
+                      </PrivateRoute>
+                    }
+                  /> 
+                   <Route
+                    path="/energy-meters/report-2"
+                    element={
+                      <PrivateRoute>
+                        <EnergyMeterReport2 />
+                      </PrivateRoute>
+                    }
+                  />
+                   <Route
+                    path="/ac/report-1"
+                    element={
+                      <PrivateRoute>
+                        <ACHistoryReport />
                       </PrivateRoute>
                     }
                   />

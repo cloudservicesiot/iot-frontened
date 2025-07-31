@@ -4,7 +4,47 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Card, CardContent, Typography, CircularProgress, FormControl, Select, MenuItem, Grid, Box, useTheme, Chip, Avatar, Stack, Divider } from "@mui/material";
 import { format, subHours, subDays, subMonths, subYears, startOfHour, startOfDay, startOfMonth, eachHourOfInterval, eachDayOfInterval, eachMonthOfInterval } from "date-fns";
 import axios from "axios";
+import mqtt from 'mqtt';
+  const MqttBrokerUrl = process.env.REACT_APP_MQTT_BROKER_URL;
+  const MqttPortWs = process.env.REACT_APP_MQTT_BROKER_PORT_WS;
+  const MqttUsername = process.env.REACT_APP_MQTT_USERNAME;
+  const MqttPassword = process.env.REACT_APP_MQTT_PASSWORD;
 
+
+
+  const mqttClient = mqtt.connect(`wss://${MqttBrokerUrl}:${MqttPortWs}/ws`, {
+        clean: false,
+        clientId: `mqtt_${Math.random().toString(16).slice(3)}`,
+        reconnectPeriod: 1000,
+        keepalive: 60,
+        username: `${MqttUsername}`,
+        password: `${MqttPassword}`,
+      });
+  
+      mqttClient.on('connect', () => {
+        console.log('Connected to MQTT broker');
+        mqttClient.subscribe(
+          [
+            "basement_smart_energy_meter/status",
+            "sale_room_smart_energy_meter/status",
+            "water-management-system/status",
+          ],
+          { qos: 1 },
+          (err, granted) => {
+            if (err) {
+              console.error('Subscription error:', err);
+            } else {
+              console.log('Subscribed to topics:', granted.map((g) => g.topic).join(', '));
+            }
+          }
+        );
+      });
+  
+      mqttClient.on('message', (topic, message) => {
+        console.log(`Message received on ${topic}: ${message.toString()}`);
+    
+      })
+  
 const typeMap = {
   '24h': 'hourly',
   '7d': 'daily',
