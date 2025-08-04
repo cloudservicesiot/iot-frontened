@@ -25,10 +25,10 @@ import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 
-const ACHistoryReport = () => {
-  const [acDevices, setAcDevices] = useState([]);
-  const [selectedAC, setSelectedAC] = useState('');
-  const [selectedACName, setSelectedACName] = useState('');
+const MotorHistoryReport = () => {
+  const [motors, setMotors] = useState([]);
+  const [selectedMotor, setSelectedMotor] = useState('');
+  const [selectedMotorName, setSelectedMotorName] = useState('');
   const [startDate, setStartDate] = useState(dayjs().subtract(1, 'month'));
   const [endDate, setEndDate] = useState(dayjs());
   const [loading, setLoading] = useState(false);
@@ -40,32 +40,35 @@ const ACHistoryReport = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Fetch all AC devices on component mount
+  // Fetch all motors on component mount
   useEffect(() => {
-    const fetchACDevices = async () => {
+    const fetchMotors = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${ApiUrl}/ac/get/allac`);
-        const { data } = await response.json();
-        setAcDevices(data);
+        const response = await fetch(`${ApiUrl}/wms/motors`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setMotors(data);
         if (data.length > 0) {
-          setSelectedAC(data[0]._id);
-          setSelectedACName(data[0].devicename);
+          setSelectedMotor(data[0]._id);
+          setSelectedMotorName(data[0].entityName);
         }
       } catch (err) {
-        setError('Failed to fetch AC devices');
+        setError('Failed to fetch motors');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchACDevices();
+    fetchMotors();
   }, []);
 
   const handleSubmit = async () => {
-    if (!selectedAC || !startDate || !endDate) {
-      setError('Please select an AC and date range');
+    if (!selectedMotor || !startDate || !endDate) {
+      setError('Please select a motor and date range');
       return;
     }
 
@@ -79,7 +82,7 @@ const ACHistoryReport = () => {
       const end = endDate.format('YYYY-MM-DD');
       
       const response = await fetch(
-        `${ApiUrl}/ac/air-conditioner-time-slots?airConditionerId=${selectedAC}&startDate=${start}&endDate=${end}`
+        `${ApiUrl}/wms/motor-time-slots?entityId=${selectedMotor}&startDate=${start}&endDate=${end}`
       );
       
       if (!response.ok) {
@@ -89,7 +92,7 @@ const ACHistoryReport = () => {
       const data = await response.json();
       setTimeSlots(data.slots || []);
     } catch (err) {
-      setError('Failed to fetch AC time slots data');
+      setError('Failed to fetch motor time slots data');
       console.error(err);
     } finally {
       setLoading(false);
@@ -121,7 +124,7 @@ const ACHistoryReport = () => {
         <Typography 
           component="span" 
           sx={{ 
-            color: status === 'on' ? 'success.main' : 'error.main',
+            color: status === 'ON' ? 'success.main' : 'error.main',
             fontWeight: 'bold'
           }}
         >
@@ -150,32 +153,32 @@ const ACHistoryReport = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" sx={{ mb: 3, fontWeight: 'bold', color: 'primary.main' }}>
-        AC Operation Time Slots Report
+        Motor Operation Time Slots Report
       </Typography>
       
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
-          Select AC and Date Range
+          Select Motor and Date Range
         </Typography>
         
         <Grid container spacing={2} sx={{ mb: 2 }}>
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth>
-              <InputLabel id="ac-select-label">AC Device</InputLabel>
+              <InputLabel id="motor-select-label">Motor Controller</InputLabel>
               <Select
-                labelId="ac-select-label"
-                value={selectedAC}
-                label="AC Device"
+                labelId="motor-select-label"
+                value={selectedMotor}
+                label="Motor Controller"
                 onChange={(e) => {
-                  const selected = acDevices.find(ac => ac._id === e.target.value);
-                  setSelectedAC(e.target.value);
-                  setSelectedACName(selected?.devicename || '');
+                  const selected = motors.find(m => m._id === e.target.value);
+                  setSelectedMotor(e.target.value);
+                  setSelectedMotorName(selected?.entityName || '');
                 }}
-                disabled={loading}
+                disabled={loading || motors.length === 0}
               >
-                {acDevices.map((ac) => (
-                  <MenuItem key={ac._id} value={ac._id}>
-                    {ac.devicename}
+                {motors.map((motor) => (
+                  <MenuItem key={motor._id} value={motor._id}>
+                    {motor.entityName} ({motor.deviceName})
                   </MenuItem>
                 ))}
               </Select>
@@ -210,7 +213,7 @@ const ACHistoryReport = () => {
         <Button 
           variant="contained" 
           onClick={handleSubmit}
-          disabled={loading || !selectedAC || !startDate || !endDate}
+          disabled={loading || !selectedMotor || !startDate || !endDate}
           sx={{ mt: 1 }}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
@@ -228,7 +231,10 @@ const ACHistoryReport = () => {
         <Paper elevation={3} sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
             <Typography variant="h6">
-              Operation Time Slots for {selectedACName}
+              Operation Time Slots for {selectedMotorName}
+            </Typography>
+            <Typography variant="subtitle1">
+              {motors.find(m => m._id === selectedMotor)?.deviceName}
             </Typography>
           </Box>
           <Divider sx={{ mb: 2 }} />
@@ -255,7 +261,7 @@ const ACHistoryReport = () => {
                       <TableCell>
                         <Chip 
                           label={slot.status} 
-                          color={slot.status === 'on' ? 'success' : 'error'} 
+                          color={slot.status === 'ON' ? 'success' : 'error'} 
                           sx={{ 
                             textTransform: 'capitalize',
                             fontWeight: 'bold',
@@ -295,4 +301,4 @@ const ACHistoryReport = () => {
   );
 };
 
-export default ACHistoryReport;
+export default MotorHistoryReport;

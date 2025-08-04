@@ -164,6 +164,13 @@ const Sidebar = () => {
                   selected={selected}
                   setSelected={setSelected}
                 />
+                <Item
+                  title="WMS Report"
+                  to="/wms/report-1"
+                  icon={<AssessmentIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
 
 
             

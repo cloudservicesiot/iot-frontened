@@ -101,6 +101,7 @@ import { WebSocketProvider } from './context/useWebsocket';
 import EnergyMeterReport1 from "./components/reports/EnergyMeterReport-1";
 import EnergyMeterReport2 from "./components/reports/EnergyMeterReport-2";
 import ACHistoryReport from "./components/reports/AcReport1";
+import MotorHistoryReport from "./components/reports/WmsReport-1";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -166,6 +167,15 @@ function App() {
                       </PrivateRoute>
                     }
                   />
+<Route
+                    path="/wms/report-1"
+                    element={
+                      <PrivateRoute>
+                        <MotorHistoryReport />
+                      </PrivateRoute>
+                    }
+                  />
+
                   <Route
                   path="/faq"
                   element={
