@@ -109,27 +109,48 @@ const FloorPlan = () => {
     return activeArea ? activeArea.imageOn : defaultFloorPlan;
   };
 
+  // const handleAreaClick = async (area) => {
+  //   const currentState = areaStates[area.id];
+  //   const endpoint = currentState
+  //     ? `http://${area.ip}/${area.domain}/${area.entityId}/turn_off`
+  //     : `http://${area.ip}/${area.domain}/${area.entityId}/turn_on`;
+
+  //   try {
+  //     const response = await axios.post(endpoint, "");
+  //     if (response.status !== 200) {
+  //       throw new Error("Failed to toggle the state");
+  //     }
+
+  //     setAreaStates((prevState) => {
+  //       const updatedState = { ...prevState, [area.id]: !currentState };
+  //       setImage(determineImage(updatedState));
+  //       return updatedState;
+  //     });
+  //   } catch (error) {
+  //     alert(`Error: ${error.message}`);
+  //   }
+  // };
   const handleAreaClick = async (area) => {
-    const currentState = areaStates[area.id];
-    const endpoint = currentState
-      ? `http://${area.ip}/${area.domain}/${area.entityId}/turn_off`
-      : `http://${area.ip}/${area.domain}/${area.entityId}/turn_on`;
+  const currentState = areaStates[area.id];
 
-    try {
-      const response = await axios.post(endpoint, "");
-      if (response.status !== 200) {
-        throw new Error("Failed to toggle the state");
-      }
+  try {
+    // always return success for test
+    await new Promise((resolve) => setTimeout(resolve, 300));
 
+    // Always treat as success
+    const response = { status: 200 };
+
+    if (response.status === 200) {
       setAreaStates((prevState) => {
         const updatedState = { ...prevState, [area.id]: !currentState };
         setImage(determineImage(updatedState));
         return updatedState;
       });
-    } catch (error) {
-      alert(`Error: ${error.message}`);
     }
-  };
+  } catch (error) {
+    console.error("Mocked Error:", error.message);
+  }
+};
 
   return (
     <>

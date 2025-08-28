@@ -326,6 +326,7 @@ const ACControl = () => {
       case 'dry': return 3;
       case 'fan_only': return 4;
       case 'auto': return 5;
+      case 'heat_cool': return 6;
       default: return 0;
     }
   };
@@ -340,8 +341,8 @@ const ACControl = () => {
     // Fetch history for current date when component mounts
     fetchHistoryData(selectedDate);
     
-    const mqttClient = mqtt.connect(`wss://${MqttBrokerUrl}:${MqttPortWs}/ws`, {
-      clean: false,
+    const mqttClient = mqtt.connect(`wss://${MqttBrokerUrl}:${MqttPortWs}`, {
+      clean: true,
       clientId: `mqtt_${Math.random().toString(16).slice(3)}`,
       reconnectPeriod: 1000,
       keepalive: 60,

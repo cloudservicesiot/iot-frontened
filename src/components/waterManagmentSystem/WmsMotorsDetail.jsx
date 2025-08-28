@@ -341,19 +341,8 @@
 
 
 
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
 import {
   Card,
   CardContent,
@@ -379,15 +368,17 @@ const DetailComponent = () => {
     const fetchGraphData = async () => {
       try {
         setLoading(true);
+        const formattedDate = selectedDate.format('YYYY-MM-DD');
         const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/energy/meters/detail/${entityId}`
+          `${process.env.REACT_APP_API_URL}/entity-history/entity-raw-history-by-date?entityId=${entityId}&date=${formattedDate}`
         );
+        
         if (!response.ok) {
           throw new Error("Failed to fetch data");
         }
         
-        const rawData = await response.json();
-        setGraphData(rawData);
+        const result = await response.json();
+        setGraphData(result.data || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -396,7 +387,7 @@ const DetailComponent = () => {
     };
 
     fetchGraphData();
-  }, [entityId]);
+  }, [entityId, selectedDate]); // Added selectedDate as dependency
 
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate);
@@ -406,19 +397,8 @@ const DetailComponent = () => {
   const prepareChartData = () => {
     if (!graphData || graphData.length === 0) return [];
     
-    // Filter data for selected date
-    const startOfDay = selectedDate.startOf('day').toDate();
-    const endOfDay = selectedDate.endOf('day').toDate();
-    
-    const filteredData = graphData.filter(item => {
-      const itemDate = new Date(item.time);
-      return itemDate >= startOfDay && itemDate <= endOfDay;
-    });
-    
-    if (filteredData.length === 0) return [];
-    
     // Sort data by time
-    const sortedData = [...filteredData].sort((a, b) => 
+    const sortedData = [...graphData].sort((a, b) => 
       new Date(a.time) - new Date(b.time)
     );
     
@@ -447,15 +427,7 @@ const DetailComponent = () => {
     // Fill in the gaps with the last known state
     for (let i = 0; i < minutesInDay; i++) {
       if (timelineData[i] === null) {
-        // Find the next non-null entry
-        let nextState = lastState;
-        for (let j = i + 1; j < minutesInDay; j++) {
-          if (timelineData[j] !== null) {
-            break;
-          }
-        }
-        
-        const time = new Date(startOfDay);
+        const time = new Date(selectedDate.startOf('day').toDate());
         time.setMinutes(time.getMinutes() + i);
         
         timelineData[i] = {
@@ -624,17 +596,6 @@ const DetailComponent = () => {
               ))}
             </Box>
           </Box>
-          
-          {/* <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: '#4CAF50', borderRadius: '2px', mr: 1 }}></Box>
-              <Typography variant="body2">ON</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Box sx={{ width: 16, height: 16, backgroundColor: '#F44336', borderRadius: '2px', mr: 1 }}></Box>
-              <Typography variant="body2">OFF</Typography>
-            </Box>
-          </Box> */}
         </>
       )}
       
