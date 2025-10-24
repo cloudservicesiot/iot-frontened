@@ -9,20 +9,27 @@ import {
   CircularProgress,
   Box,
   IconButton,
-  useTheme
+  useTheme,
+  TextField,
+  InputAdornment,
+  Paper
 } from '@mui/material';
 import { 
   ElectricMeter as MeterIcon,
   Share as ShareIcon,
-  Info as InfoIcon 
+  Info as InfoIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 const ApiUrl = process.env.REACT_APP_API_URL;
 
 const Entities = () => {
   const [Entities, setEntities] = useState([]);
+  const [filteredEntities, setFilteredEntities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -32,6 +39,7 @@ const Entities = () => {
         const response = await fetch(`${ApiUrl}/entity-history/history`);
         const data = await response.json();
         setEntities(data);
+        setFilteredEntities(data);
         setLoading(false);
       } catch (error) {
         setError("Failed to fetch energy meters.");
@@ -42,6 +50,28 @@ const Entities = () => {
     fetchEntities();
   }, []);
 
+  // Filter entities based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredEntities(Entities);
+    } else {
+      const filtered = Entities.filter(entity => 
+        entity.deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entity.entityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        entity.state.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredEntities(filtered);
+    }
+  }, [searchTerm, Entities]);
+
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
 
   const getStateColor = (state) => {
     if (state === "ON") return theme.palette.success.main;
@@ -88,6 +118,45 @@ const Entities = () => {
         Energy Meters Dashboard
       </Typography>
       
+      {/* Search Filter */}
+      <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+        <TextField
+          fullWidth
+          placeholder="Search entities by device name, entity name, or state..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton
+                  aria-label="clear search"
+                  onClick={handleClearSearch}
+                  edge="end"
+                  size="small"
+                >
+                  <ClearIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+            }
+          }}
+        />
+        {searchTerm && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Showing {filteredEntities.length} of {Entities.length} entities
+          </Typography>
+        )}
+      </Paper>
+      
       <Card sx={{ mb: 4, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
         <CardContent>
           <Box display="flex" alignItems="center">
@@ -100,7 +169,19 @@ const Entities = () => {
       </Card>
 
       <Grid container spacing={3}>
-        {Entities.map((entity) => (
+        {filteredEntities.length === 0 ? (
+          <Grid item xs={12}>
+            <Card sx={{ p: 4, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary">
+                No entities found matching your search criteria
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                Try adjusting your search terms
+              </Typography>
+            </Card>
+          </Grid>
+        ) : (
+          filteredEntities.map((entity) => (
           <Grid item xs={12} sm={5} md={3} key={entity._id}>
             <Card 
               elevation={3}
@@ -169,7 +250,8 @@ const Entities = () => {
               </CardActions>
             </Card>
           </Grid>
-        ))}
+          ))
+        )}
       </Grid>
     </Box>
     </>
