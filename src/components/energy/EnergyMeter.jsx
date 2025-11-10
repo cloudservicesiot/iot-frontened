@@ -8,19 +8,27 @@ import {
   Grid,
   CircularProgress,
   Box,
-  useTheme
+  useTheme,
+  TextField,
+  InputAdornment,
+  Paper,
+  IconButton
 } from '@mui/material';
 import { 
   ElectricMeter as MeterIcon,
-  Info as InfoIcon 
+  Info as InfoIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 const ApiUrl = process.env.REACT_APP_API_URL;
 
 const EnergyMeters = () => {
   const [energyMeters, setEnergyMeters] = useState([]);
+  const [filteredMeters, setFilteredMeters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const theme = useTheme();
 
@@ -30,6 +38,7 @@ const EnergyMeters = () => {
         const response = await fetch(`${ApiUrl}/energy/meters`);
         const data = await response.json();
         setEnergyMeters(data);
+        setFilteredMeters(data);
         setLoading(false);
       } catch (error) {
         setError("Failed to fetch energy meters. Please try again later.");
@@ -40,8 +49,30 @@ const EnergyMeters = () => {
     fetchEnergyMeters();
   }, []);
 
+  // Filter meters based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredMeters(energyMeters);
+    } else {
+      const filtered = energyMeters.filter(meter => 
+        meter.deviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        meter.entityName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        meter.state.toString().includes(searchTerm)
+      );
+      setFilteredMeters(filtered);
+    }
+  }, [searchTerm, energyMeters]);
+
   const getTotalEnergy = () => {
-    return energyMeters.reduce((total, meter) => total + parseInt(meter.state, 10), 0);
+    return filteredMeters.reduce((total, meter) => total + parseInt(meter.state, 10), 0);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
   };
 
   if (loading) {
@@ -68,6 +99,45 @@ const EnergyMeters = () => {
         <Typography variant="h4" gutterBottom sx={{ mb: 3, fontWeight: 600 }}>
           Energy Consumption Dashboard
         </Typography>
+        
+        {/* Search Filter */}
+        <Paper elevation={2} sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+          <TextField
+            fullWidth
+            placeholder="Search energy meters by device name, entity name, or energy value..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="clear search"
+                    onClick={handleClearSearch}
+                    edge="end"
+                    size="small"
+                  >
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                borderRadius: 2,
+              }
+            }}
+          />
+          {searchTerm && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Showing {filteredMeters.length} of {energyMeters.length} meters
+            </Typography>
+          )}
+        </Paper>
         
         {/* Summary Card */}
         <Card sx={{ 
@@ -96,7 +166,19 @@ const EnergyMeters = () => {
 
         {/* Meters Grid */}
         <Grid container spacing={3}>
-          {energyMeters.map((meter) => (
+          {filteredMeters.length === 0 ? (
+            <Grid item xs={12}>
+              <Card sx={{ p: 4, textAlign: 'center' }}>
+                <Typography variant="h6" color="text.secondary">
+                  No energy meters found matching your search criteria
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Try adjusting your search terms
+                </Typography>
+              </Card>
+            </Grid>
+          ) : (
+            filteredMeters.map((meter) => (
             <Grid item xs={12} sm={6} md={4} key={meter._id}>
               <Card 
                 elevation={2}
@@ -176,7 +258,8 @@ const EnergyMeters = () => {
                 </CardActions>
               </Card>
             </Grid>
-          ))}
+            ))
+          )}
         </Grid>
       </Box>
     </>
