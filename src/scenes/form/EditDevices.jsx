@@ -21,8 +21,9 @@ import {
   MenuItem,
   FormControlLabel,
   Switch,
+  InputAdornment,
 } from "@mui/material";
-import { Edit, Delete, Visibility } from "@mui/icons-material";
+import { Edit, Delete, Visibility, Search } from "@mui/icons-material";
 import axios from "axios";
 import { Link } from "react-router-dom";
 
@@ -32,6 +33,7 @@ const DeviceManager = () => {
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // fields to edit (from Device.model)
   const [name, setName] = useState("");
@@ -89,11 +91,39 @@ const DeviceManager = () => {
       .catch(console.error);
   };
 
+  // Filter devices based on search query
+  const filteredDevices = devices.filter((device) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      device.name?.toLowerCase().includes(query) ||
+      device.deviceId?.toLowerCase().includes(query) ||
+      device.status?.toLowerCase().includes(query) ||
+      (device.deviceType && device.deviceType.toLowerCase().includes(query))
+    );
+  });
+
   return (
     <Paper sx={{ padding: 4 }}>
       <Typography variant="h4" gutterBottom>
         Device Management
       </Typography>
+      
+      {/* Search Filter */}
+      <TextField
+        fullWidth
+        placeholder="Search devices by name, ID, status, or type..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        sx={{ mb: 3 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search sx={{ color: "text.secondary" }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
       <TableContainer>
         <Table>
           <TableHead>
@@ -107,7 +137,16 @@ const DeviceManager = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {devices.map((device) => (
+            {filteredDevices.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center">
+                  <Typography variant="body2" color="text.secondary">
+                    {searchQuery ? "No devices found matching your search." : "No devices available."}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredDevices.map((device) => (
               <TableRow key={device._id}>
                 <TableCell>{device.name}</TableCell>
                 <TableCell>{device.deviceId}</TableCell>
@@ -139,7 +178,8 @@ const DeviceManager = () => {
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))}
+            ))
+            )}
           </TableBody>
         </Table>
       </TableContainer>
