@@ -19,13 +19,12 @@ import {
 } from '@mui/icons-material';
 import { Formik, Form, Field } from 'formik';
 import * as yup from 'yup';
-import axios from 'axios';
+import axiosInstance from '../../axiosInstence';
 import { AuthContext } from '../../hooks/useAuth';
 import { useMediaQuery } from '@mui/material';
 import Snackbar from '@mui/material/Snackbar';
 import MuiAlert from '@mui/material/Alert';
 import { useNavigate } from 'react-router-dom';
-const ApiUrl = process.env.REACT_APP_API_URL;
 const GradientButton = styled(Button)(({ theme }) => ({
   background: `linear-gradient(45deg, ${theme.palette.secondary.main} 30%, ${theme.palette.primary.main} 90%)`,
   border: 0,
@@ -58,11 +57,13 @@ function LoginPage() {
   const navigate = useNavigate();
   const handleApiCall = async (values) => {
     try {
-      const response = await axios.post(`${ApiUrl}/user/login`, values);
+      const response = await axiosInstance.post('/user/login', values);
       if (response.data.token) {
         setSnackbar({ open: true, message: 'Login successful! Redirecting...', severity: 'success' });
         setTimeout(() => {
-          login(response.data.token);
+          // Pass user data if available from response
+          const userData = response.data.user || null;
+          login(response.data.token, userData);
           navigate('/');
         }, 1500);
       }

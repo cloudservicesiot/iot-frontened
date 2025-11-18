@@ -1,52 +1,134 @@
-import { Box, IconButton, useTheme } from "@mui/material";
-import { useContext } from "react";
-import { ColorModeContext, tokens } from "../../theme";
-import InputBase from "@mui/material/InputBase";
-import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
-import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
-import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import { Box, IconButton, Typography, Menu, MenuItem, Avatar, useMediaQuery } from "@mui/material";
+import { useContext, useState } from "react";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
-import SearchIcon from "@mui/icons-material/Search";
-import Sidebar from "./Sidebar";
-const Topbar = () => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  const colorMode = useContext(ColorModeContext);
+import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
+import { AuthContext } from "../../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+
+const Topbar = ({ setIsSidebar }) => {
+  const { logout, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = useState(null);
+  const open = Boolean(anchorEl);
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('md'));
+
+  // Get username from user object
+  const username = user?.username || user?.email?.split('@')[0] || 'User';
+
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleClose();
+    navigate("/user/login");
+  };
+
+  const handleMenuClick = () => {
+    if (setIsSidebar) {
+      setIsSidebar((prev) => !prev);
+    }
+  };
 
   return (
-    <Box display="flex" justifyContent="space-between" p={2}>
-      
-      {/* SEARCH BAR */}
-      <Box
-        display="flex"
-        backgroundColor={colors.primary[400]}
-        borderRadius="3px"
-      >
-        <InputBase sx={{ ml: 2, flex: 1 }} placeholder="Search" />
-        <IconButton type="button" sx={{ p: 1 }}>
-          <SearchIcon />
-        </IconButton>
+    <Box 
+      display="flex" 
+      justifyContent="space-between" 
+      alignItems="center"
+      p={1}
+      sx={{
+        backgroundColor: "#f5f5f5",
+        borderBottom: "1px solid #e0e0e0",
+      }}
+    >
+      {/* LEFT SIDE - MENU ICON (MOBILE) & WELCOME TEXT */}
+      <Box display="flex" alignItems="center" gap={1}>
+        {isMobile && (
+          <IconButton
+            onClick={handleMenuClick}
+            size="small"
+            sx={{
+              "&:hover": {
+                backgroundColor: "#e0e0e0",
+              },
+            }}
+          >
+            <MenuIcon />
+          </IconButton>
+        )}
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: "600",
+            color: "#333",
+          }}
+        >
+          Welcome, {username}
+        </Typography>
       </Box>
 
-      {/* ICONS */}
-      <Box display="flex">
-        <IconButton onClick={colorMode.toggleColorMode}>
-          {theme.palette.mode === "dark" ? (
-            <DarkModeOutlinedIcon />
-          ) : (
-            <LightModeOutlinedIcon />
-          )}
+      {/* RIGHT SIDE - USER MENU */}
+      <Box display="flex" alignItems="center">
+        <IconButton
+          onClick={handleClick}
+          size="small"
+          sx={{
+            "&:hover": {
+              backgroundColor: "#e0e0e0",
+            },
+          }}
+        >
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              backgroundColor: "#1976d2",
+              color: "#fff",
+            }}
+          >
+            <PersonOutlinedIcon fontSize="small" />
+          </Avatar>
         </IconButton>
-        <IconButton>
-          <NotificationsOutlinedIcon />
-        </IconButton>
-        <IconButton>
-          <SettingsOutlinedIcon />
-        </IconButton>
-        <IconButton>
-          <PersonOutlinedIcon />
-        </IconButton>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleClose}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "right",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "right",
+          }}
+          PaperProps={{
+            sx: {
+              mt: 1.5,
+              minWidth: 200,
+              backgroundColor: "#fff",
+              border: "1px solid #e0e0e0",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              "& .MuiMenuItem-root": {
+                color: "#333",
+                "&:hover": {
+                  backgroundColor: "#f5f5f5",
+                },
+              },
+            },
+          }}
+        >
+          <MenuItem onClick={handleLogout}>
+            <LogoutIcon sx={{ mr: 2, fontSize: 20 }} />
+            Logout
+          </MenuItem>
+        </Menu>
       </Box>
     </Box>
   );

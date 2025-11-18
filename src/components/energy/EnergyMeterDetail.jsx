@@ -1,47 +1,148 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Card, CardContent, Typography, CircularProgress, FormControl, Select, MenuItem, Grid, Box, useTheme, Chip, Avatar, Stack, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { format, subHours, subDays, subMonths, subYears, startOfHour, startOfDay, startOfMonth, eachHourOfInterval, eachDayOfInterval, eachMonthOfInterval } from "date-fns";
+import { Card, CardContent, Typography, CircularProgress, FormControl, Select, MenuItem, Grid, Box, useTheme, Chip, Avatar, Stack, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Button, ToggleButton, ToggleButtonGroup, Breadcrumbs, Link } from "@mui/material";
+import { Home, ChevronRight } from "@mui/icons-material";
+import { format, subHours, subDays, subMonths, subYears, startOfHour, startOfDay, startOfMonth, eachHourOfInterval, eachDayOfInterval, eachMonthOfInterval, addHours, addDays, parseISO } from "date-fns";
 import axios from "axios";
 import mqtt from 'mqtt';
-  const MqttBrokerUrl = process.env.REACT_APP_MQTT_BROKER_URL;
-  const MqttPortWs = process.env.REACT_APP_MQTT_BROKER_PORT_WS;
-  const MqttUsername = process.env.REACT_APP_MQTT_USERNAME;
-  const MqttPassword = process.env.REACT_APP_MQTT_PASSWORD;
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
 
+// Custom DateRangePicker component using free DatePicker
+const CustomDateRangePicker = ({ value, onChange, sx = {} }) => {
+  const [startDate, endDate] = value || [null, null];
 
-
-  const mqttClient = mqtt.connect(`wss://${MqttBrokerUrl}:${MqttPortWs}/ws`, {
-        clean: false,
-        clientId: `mqtt_${Math.random().toString(16).slice(3)}`,
-        reconnectPeriod: 1000,
-        keepalive: 60,
-        username: `${MqttUsername}`,
-        password: `${MqttPassword}`,
-      });
-  
-      mqttClient.on('connect', () => {
-        console.log('Connected to MQTT broker');
-        mqttClient.subscribe(
-          [
-            "basement_smart_energy_meter/status",
-          ],
-          { qos: 1 },
-          (err, granted) => {
-            if (err) {
-              console.error('Subscription error:', err);
-            } else {
-              console.log('Subscribed to topics:', granted.map((g) => g.topic).join(', '));
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 1,
+        border: '1px solid rgba(255,255,255,0.3)',
+        overflow: 'hidden',
+        '&:hover': {
+          borderColor: 'rgba(255,255,255,0.5)'
+        },
+        '&:focus-within': {
+          borderColor: 'rgba(255,255,255,0.7)'
+        },
+        ...sx
+      }}
+    >
+      <DatePicker
+        value={startDate}
+        onChange={(newValue) => {
+          onChange([newValue, endDate]);
+        }}
+        maxDate={endDate || dayjs()}
+        slotProps={{
+          textField: {
+            size: 'small',
+            placeholder: 'From Date',
+            sx: {
+              '& .MuiOutlinedInput-root': {
+                color: 'white',
+                border: 'none',
+                '& fieldset': {
+                  border: 'none'
+                },
+                '&:hover fieldset': {
+                  border: 'none'
+                },
+                '&.Mui-focused fieldset': {
+                  border: 'none'
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255,255,255,0.7)',
+                '&.Mui-focused': {
+                  color: 'rgba(255,255,255,0.9)'
+                }
+              },
+              '& .MuiInputBase-input': {
+                color: 'white',
+                '&::placeholder': {
+                  color: 'rgba(255,255,255,0.7)',
+                  opacity: 1
+                }
+              },
+              '& .MuiSvgIcon-root': {
+                color: 'white'
+              }
             }
           }
-        );
-      });
-  
-      mqttClient.on('message', (topic, message) => {
-        console.log(`Message received on ${topic}: ${message.toString()}`);
-    
-      })
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 0
+          }
+        }}
+      />
+      <Box
+        sx={{
+          width: '1px',
+          height: '32px',
+          backgroundColor: 'rgba(255,255,255,0.3)',
+          mx: 0.5
+        }}
+      />
+      <DatePicker
+        value={endDate}
+        onChange={(newValue) => {
+          onChange([startDate, newValue]);
+        }}
+        minDate={startDate}
+        maxDate={dayjs()}
+        slotProps={{
+          textField: {
+            size: 'small',
+            placeholder: 'To Date',
+            sx: {
+              '& .MuiOutlinedInput-root': {
+                color: 'white',
+                border: 'none',
+                '& fieldset': {
+                  border: 'none'
+                },
+                '&:hover fieldset': {
+                  border: 'none'
+                },
+                '&.Mui-focused fieldset': {
+                  border: 'none'
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255,255,255,0.7)',
+                '&.Mui-focused': {
+                  color: 'rgba(255,255,255,0.9)'
+                }
+              },
+              '& .MuiInputBase-input': {
+                color: 'white',
+                '&::placeholder': {
+                  color: 'rgba(255,255,255,0.7)',
+                  opacity: 1
+                }
+              },
+              '& .MuiSvgIcon-root': {
+                color: 'white'
+              }
+            }
+          }
+        }}
+        sx={{
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 0
+          }
+        }}
+      />
+    </Box>
+  );
+};
   
 const typeMap = {
   '12h': 'hourly',
@@ -127,6 +228,7 @@ const getRange = (timeRange) => {
 
 const DetailPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { deviceName, entityName, state, meterId } = location.state || {};
   const theme = useTheme();
 
@@ -135,20 +237,35 @@ const DetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [additionalLoading, setAdditionalLoading] = useState([]);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('24h');
   const [associatedEntities, setAssociatedEntities] = useState([]);
   const [additionalAssociatedEntities, setAdditionalAssociatedEntities] = useState([]);
   const [additionalDeviceInfo, setAdditionalDeviceInfo] = useState([]);
   const ApiUrl = process.env.REACT_APP_API_URL;
   
-  // New state for table functionality
+  // Unified filter state
+  const [dateRange, setDateRange] = useState([
+    dayjs().subtract(1, 'day'),
+    dayjs()
+  ]);
+  const [interval, setInterval] = useState('1h'); // 1h, 2h, 4h, 8h, 12h, 1d
+  
+  // State to track applied filters (for fetching data)
+  const [appliedFilters, setAppliedFilters] = useState({
+    startDate: format(dayjs().subtract(1, 'day').toDate(), 'yyyy-MM-dd'),
+    endDate: format(dayjs().toDate(), 'yyyy-MM-dd'),
+    interval: '1h'
+  });
+  
+  // Table data state (now includes all entity values)
   const [tableData, setTableData] = useState([]);
   const [additionalTableData, setAdditionalTableData] = useState([]);
   const [tableLoading, setTableLoading] = useState(false);
-  const [tableFilterType, setTableFilterType] = useState('duration'); // 'duration' or 'date'
-  const [tableSelectedDate, setTableSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [tableTimeRange, setTableTimeRange] = useState('24h');
-  const [showTable, setShowTable] = useState(false);
+  
+  // Use applied filters for API calls (not the current filter state)
+  const startDate = appliedFilters.startDate;
+  const endDate = appliedFilters.endDate;
+  const appliedInterval = appliedFilters.interval;
+  
   // Check if this is a special meter that needs additional charts
   const isSpecialMeter = useMemo(() => Object.keys(specialMeterPairs).includes(meterId), [meterId]);
   const additionalMeterIds = useMemo(() => isSpecialMeter ? specialMeterPairs[meterId] : [], [isSpecialMeter, meterId]);
@@ -173,14 +290,15 @@ const DetailPage = () => {
     ]
   };
 
-  const timeRanges = [
-    { value: '12h', label: 'Last 12 Hours', color: '#667eea' },
-    { value: '24h', label: 'Last 24 Hours', color: '#764ba2' },
-    { value: '7d', label: 'Last 7 Days', color: '#f093fb' },
-    { value: '15d', label: 'Last 15 Days', color: '#4facfe' },
-    { value: '30d', label: 'Last 30 Days', color: '#43e97b' },
-    { value: '12m', label: 'Last 12 Months', color: '#fa709a' },
-    { value: 'yearly', label: 'Yearly', color: '#a8edea' }
+  // Interval options
+  const intervalOptions = [
+    { value: '1h', label: '1 Hour' },
+    { value: '2h', label: '2 Hours' },
+    { value: '4h', label: '4 Hours' },
+    { value: '8h', label: '8 Hours' },
+    { value: '12h', label: '12 Hours' },
+    { value: '1d', label: '1 Day' },
+    { value: '1m', label: '1 Month' }
   ];
 
   // Helper function to get unit for entity
@@ -207,11 +325,85 @@ const DetailPage = () => {
     return '⚙️';
   };
 
-  const fetchEnergyData = async (meterId, index = -1) => {
-    const { start, end, type } = getRange(timeRange);
+  // Helper function to determine collection type based on interval
+  const getCollectionType = (interval) => {
+    if (interval === '1m') return 'monthly';
+    if (interval === '1d') return 'daily';
+    if (['1h', '2h', '4h', '8h', '12h'].includes(interval)) return 'hourly';
+    return 'hourly';
+  };
+
+  // Helper function to get interval in hours
+  const getIntervalHours = (interval) => {
+    const map = { '1h': 1, '2h': 2, '4h': 4, '8h': 8, '12h': 12, '1d': 24, '1m': 24 * 30 };
+    return map[interval] || 1;
+  };
+
+  // Function to sample energy data based on interval
+  const sampleEnergyData = (data, interval) => {
+    if (!data || data.length === 0) return [];
+    
+    const intervalHours = getIntervalHours(interval);
+    const sampled = [];
+    const sortedData = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    
+    if (sortedData.length === 0) return [];
+    
+    let currentTime = new Date(sortedData[0].timestamp);
+    const endTime = new Date(sortedData[sortedData.length - 1].timestamp);
+    
+    while (currentTime <= endTime) {
+      // Find the closest data point to currentTime
+      let closest = sortedData[0];
+      let minDiff = Math.abs(new Date(closest.timestamp) - currentTime);
+      
+      for (const item of sortedData) {
+        const diff = Math.abs(new Date(item.timestamp) - currentTime);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = item;
+        }
+      }
+      
+      // Only add if within reasonable range (half the interval)
+      const maxDiff = (intervalHours * 60 * 60 * 1000) / 2; // half interval in milliseconds
+      if (minDiff <= maxDiff) {
+        sampled.push(closest);
+      }
+      
+      // Move to next interval
+      currentTime = addHours(currentTime, intervalHours);
+    }
+    
+    return sampled;
+  };
+
+  // Function to find nearest raw entity value for a given timestamp
+  const findNearestEntityValue = (rawData, targetTimestamp) => {
+    if (!rawData || rawData.length === 0) return null;
+    
+    let nearest = rawData[0];
+    let minDiff = Math.abs(new Date(rawData[0].time) - new Date(targetTimestamp));
+    
+    for (const item of rawData) {
+      const diff = Math.abs(new Date(item.time) - new Date(targetTimestamp));
+      if (diff < minDiff) {
+        minDiff = diff;
+        nearest = item;
+      }
+    }
+    
+    // Only return if within 5 minutes of target (300000 milliseconds = 5 minutes)
+    if (minDiff <= 5 * 60 * 1000) {
+      return nearest;
+    }
+    
+    return null;
+  };
+
+  const fetchEnergyData = async (meterId, index = -1, filterOverrides = null) => {
     try {
       if (index >= 0) {
-        // Update loading state for additional chart
         setAdditionalLoading(prev => {
           const newLoading = [...prev];
           newLoading[index] = true;
@@ -221,12 +413,25 @@ const DetailPage = () => {
         setLoading(true);
       }
       
+      // Use override values if provided, otherwise use applied filters
+      const filterStartDate = filterOverrides?.startDate || startDate;
+      const filterEndDate = filterOverrides?.endDate || endDate;
+      const filterInterval = filterOverrides?.interval || appliedInterval;
+      
+      // Convert date strings to ISO timestamps
+      const startDateTime = new Date(filterStartDate);
+      startDateTime.setHours(0, 0, 0, 0);
+      const endDateTime = new Date(filterEndDate);
+      endDateTime.setHours(23, 59, 59, 999);
+      
+      const type = getCollectionType(filterInterval);
+      
       const res = await axios.get(`${ApiUrl}/energy/energy-meter-data`, {
         params: {
           entityId: meterId,
           type,
-          start,
-          end
+          start: startDateTime.toISOString(),
+          end: endDateTime.toISOString()
         }
       });
       
@@ -234,23 +439,27 @@ const DetailPage = () => {
         new Date(a.timestamp) - new Date(b.timestamp)
       );
       
+      // Sample data based on interval
+      const sampledData = sampleEnergyData(sortedData, filterInterval);
+      
       if (index >= 0) {
-        // Update data for additional chart
         setAdditionalEnergyData(prev => {
           const newData = [...prev];
-          newData[index] = sortedData;
+          newData[index] = sampledData;
           return newData;
         });
-        // Update loading state
         setAdditionalLoading(prev => {
           const newLoading = [...prev];
           newLoading[index] = false;
           return newLoading;
         });
       } else {
-        setEnergyData(sortedData);
+        setEnergyData(sampledData);
         setLoading(false);
       }
+      
+      // Return sampled data so it can be used immediately
+      return sampledData;
     } catch (err) {
       console.error('Error fetching energy data:', err);
       setError("Failed to fetch energy data. Please try again.");
@@ -263,8 +472,10 @@ const DetailPage = () => {
       } else {
         setLoading(false);
       }
+      return []; // Return empty array on error
     }
   };
+
 
   const fetchAssociatedEntities = async (meterId, index = -1) => {
     try {
@@ -290,106 +501,117 @@ const DetailPage = () => {
       } else {
         setAssociatedEntities(res.data.associatedEntities);
       }
+      
+      return res.data.associatedEntities;
     } catch (err) {
       console.error('Failed to fetch associated entities:', err);
+      return [];
     }
   };
 
-  // Function to fetch table data based on filter type
-  const fetchTableData = async (meterId, index = -1) => {
-    setTableLoading(true);
-    try {
-      let data;
-      
-      if (tableFilterType === 'date') {
-        // Fetch hourly data for specific date
-        const res = await axios.get(`${ApiUrl}/energy/hourly-energy-data`, {
-          params: {
-            entityId: meterId,
-            date: tableSelectedDate
-          }
-        });
-        data = res.data;
-      } else {
-        // Fetch data based on table time range
-        const { start, end, type } = getRange(tableTimeRange);
-        const res = await axios.get(`${ApiUrl}/energy/energy-meter-data`, {
-          params: {
-            entityId: meterId,
-            type,
-            start,
-            end
-          }
-        });
-        data = res.data.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-      }
-      
-      // Get device info for the name field
-      const deviceInfo = index >= 0 ? additionalDeviceInfo[index] : { deviceName, entityName };
-      
-      // Format data for table display
-      const formattedData = data.map(item => ({
-        name: deviceInfo.deviceName || 'Unknown Device',
-        date: format(new Date(item.timestamp), 'yyyy-MM-dd'),
-        hour: format(new Date(item.timestamp), 'HH:mm'),
-        energyConsumption: item.totalValue || 0,
-        timestamp: item.timestamp
-      }));
-      
-      if (index >= 0) {
-        setAdditionalTableData(prev => {
-          const newData = [...prev];
-          newData[index] = formattedData;
-          return newData;
-        });
-      } else {
-        setTableData(formattedData);
-      }
-    } catch (err) {
-      console.error('Error fetching table data:', err);
-      setError("Failed to fetch table data. Please try again.");
-    } finally {
-      setTableLoading(false);
+  // Function to prepare table data with only energy consumption data
+  const prepareTableData = (energyData, deviceInfo) => {
+    if (!energyData || energyData.length === 0) return [];
+    
+    const tableRows = energyData.map(energyItem => {
+      return {
+        date: format(new Date(energyItem.timestamp), 'yyyy-MM-dd'),
+        time: format(new Date(energyItem.timestamp), 'HH:mm:ss'),
+        timestamp: energyItem.timestamp,
+        totalValue: energyItem.totalValue || 0,
+        totalEnergyConsumption: energyItem.totalEnergyConsumption || NaN
+      };
+    });
+    
+    return tableRows;
+  };
+
+  // Function to apply filters and fetch data
+  const applyFilters = async () => {
+    if (!meterId) return;
+    
+    // Calculate new filter values
+    const newStartDate = dateRange[0] ? format(dateRange[0].toDate(), 'yyyy-MM-dd') : format(subDays(new Date(), 1), 'yyyy-MM-dd');
+    const newEndDate = dateRange[1] ? format(dateRange[1].toDate(), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+    const newInterval = interval;
+    
+    // Update applied filters state
+    setAppliedFilters({
+      startDate: newStartDate,
+      endDate: newEndDate,
+      interval: newInterval
+    });
+    
+    // Create filter override object to pass directly to fetch functions
+    const filterOverrides = {
+      startDate: newStartDate,
+      endDate: newEndDate,
+      interval: newInterval
+    };
+    
+    // Initialize states based on how many additional charts we need
+    const additionalCount = isSpecialMeter ? specialMeterPairs[meterId].length : 0;
+    setAdditionalEnergyData(Array(additionalCount).fill([]));
+    setAdditionalLoading(Array(additionalCount).fill(true));
+    setAdditionalAssociatedEntities(Array(additionalCount).fill([]));
+    setAdditionalDeviceInfo(Array(additionalCount).fill(null));
+    setAdditionalTableData(Array(additionalCount).fill([]));
+
+    // Fetch data for main chart with new filter values
+    const fetchMainData = async () => {
+      // Fetch energy data
+      await fetchEnergyData(meterId, -1, filterOverrides);
+      // Fetch associated entities (for display in sidebar, not for table)
+      await fetchAssociatedEntities(meterId);
+    };
+    
+    await fetchMainData();
+    
+    // Fetch data for additional charts if needed
+    if (isSpecialMeter) {
+      const fetchAdditionalData = async () => {
+        for (let index = 0; index < specialMeterPairs[meterId].length; index++) {
+          const id = specialMeterPairs[meterId][index];
+          // Fetch energy data
+          await fetchEnergyData(id, index, filterOverrides);
+          // Fetch associated entities (for display in sidebar, not for table)
+          await fetchAssociatedEntities(id, index);
+        }
+      };
+      await fetchAdditionalData();
     }
   };
 
+  // Apply filters on initial load
   useEffect(() => {
     if (meterId) {
-      // Initialize states based on how many additional charts we need
-      const additionalCount = isSpecialMeter ? specialMeterPairs[meterId].length : 0;
-      setAdditionalEnergyData(Array(additionalCount).fill([]));
-      setAdditionalLoading(Array(additionalCount).fill(true));
-      setAdditionalAssociatedEntities(Array(additionalCount).fill([]));
-      setAdditionalDeviceInfo(Array(additionalCount).fill(null));
-      setAdditionalTableData(Array(additionalCount).fill([]));
-
-      // Fetch data for main chart
-      fetchEnergyData(meterId);
-      fetchAssociatedEntities(meterId);
-      
-      // Fetch data for additional charts if needed
-      if (isSpecialMeter) {
-        specialMeterPairs[meterId].forEach((id, index) => {
-          fetchEnergyData(id, index);
-          fetchAssociatedEntities(id, index);
-        });
-      }
+      applyFilters();
     }
-  }, [meterId, timeRange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meterId]);
 
-  // Effect to fetch table data when table filter changes
+  // Effect to prepare table data when data changes
   useEffect(() => {
-    if (meterId && showTable) {
-      fetchTableData(meterId);
-      
-      // Fetch table data for additional meters if special meter
-      if (isSpecialMeter) {
-        specialMeterPairs[meterId].forEach((id, index) => {
-          fetchTableData(id, index);
-        });
-      }
+    if (energyData.length > 0) {
+      const tableRows = prepareTableData(energyData, { deviceName, entityName, state });
+      setTableData(tableRows);
     }
-  }, [tableFilterType, tableSelectedDate, tableTimeRange, showTable]);
+    
+    // Prepare table data for additional meters
+    if (isSpecialMeter) {
+      additionalEnergyData.forEach((data, index) => {
+        if (data.length > 0) {
+          const deviceInfo = additionalDeviceInfo[index] || { deviceName, entityName, state };
+          const tableRows = prepareTableData(data, deviceInfo);
+          setAdditionalTableData(prev => {
+            const newData = [...prev];
+            newData[index] = tableRows;
+            return newData;
+          });
+        }
+      });
+    }
+  }, [energyData, additionalEnergyData]);
 
   const chartData = useMemo(() => {
     if (!energyData || !energyData.length) return [];
@@ -398,32 +620,26 @@ const DetailPage = () => {
       const date = new Date(item.timestamp);
       let timeLabel;
       
-      switch (timeRange) {
-        case '12h':
-        case '24h':
-          timeLabel = format(date, 'h aaa');
-          break;
-        case '7d':
-        case '15d':
-        case '30d':
-          timeLabel = format(date, 'MMM d');
-          break;
-        case '12m':
-        case 'yearly':
-          timeLabel = format(date, 'MMM yyyy');
-          break;
-        default:
-          timeLabel = format(date, 'h aaa');
+      // Format based on applied interval
+      if (appliedInterval === '1m') {
+        timeLabel = format(date, 'MMM yyyy');
+      } else if (appliedInterval === '1d') {
+        timeLabel = format(date, 'MMM d, yyyy');
+      } else if (['1h', '2h', '4h', '8h', '12h'].includes(appliedInterval)) {
+        timeLabel = format(date, 'MMM d, HH:mm');
+      } else {
+        timeLabel = format(date, 'MMM d, HH:mm');
       }
       
       return {
         time: timeLabel,
         totalValue: item.totalValue,
+        totalEnergyConsumption: item.totalEnergyConsumption,
         timestamp: item.timestamp,
         fullDate: date
       };
     });
-  }, [energyData, timeRange]);
+  }, [energyData, appliedInterval]);
 
   const additionalChartData = useMemo(() => {
     return additionalEnergyData.map(data => {
@@ -433,22 +649,13 @@ const DetailPage = () => {
         const date = new Date(item.timestamp);
         let timeLabel;
         
-        switch (timeRange) {
-          case '12h':
-          case '24h':
-            timeLabel = format(date, 'h aaa');
-            break;
-          case '7d':
-          case '15d':
-          case '30d':
-            timeLabel = format(date, 'MMM d');
-            break;
-          case '12m':
-          case 'yearly':
-            timeLabel = format(date, 'MMM yyyy');
-            break;
-          default:
-            timeLabel = format(date, 'h aaa');
+        // Format based on applied interval
+        if (appliedInterval === '1d') {
+          timeLabel = format(date, 'MMM d, yyyy');
+        } else if (['1h', '2h', '4h', '8h', '12h'].includes(appliedInterval)) {
+          timeLabel = format(date, 'MMM d, HH:mm');
+        } else {
+          timeLabel = format(date, 'MMM d, HH:mm');
         }
         
         return {
@@ -459,45 +666,45 @@ const DetailPage = () => {
         };
       });
     });
-  }, [additionalEnergyData, timeRange]);
+  }, [additionalEnergyData, appliedInterval]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       let dateString;
       
-      switch (timeRange) {
-        case '12h':
-        case '24h':
-          dateString = format(data.fullDate, 'MMM d, yyyy h aaa');
-          break;
-        case '7d':
-        case '15d':
-        case '30d':
-          dateString = format(data.fullDate, 'EEEE, MMM d, yyyy');
-          break;
-        case '12m':
-        case 'yearly':
-          dateString = format(data.fullDate, 'MMMM yyyy');
-          break;
-        default:
-          dateString = format(data.fullDate, 'MMM d, yyyy h aaa');
+      // Format based on applied interval
+      if (appliedInterval === '1m') {
+        dateString = format(data.fullDate, 'MMMM yyyy');
+      } else if (appliedInterval === '1d') {
+        dateString = format(data.fullDate, 'MMMM d, yyyy');
+      } else {
+        dateString = format(data.fullDate, 'MMM d, yyyy HH:mm');
       }
+      
+      // Format totalEnergyConsumption, handle NaN
+      const totalEnergyConsumption = data.totalEnergyConsumption;
+      const energyConsumptionDisplay = (totalEnergyConsumption !== null && totalEnergyConsumption !== undefined && !isNaN(totalEnergyConsumption))
+        ? totalEnergyConsumption.toLocaleString(undefined, { maximumFractionDigits: 2 })
+        : 'N/A';
       
       return (
         <Card sx={{ 
           p: 2, 
-          background: '#1976d2',
+          background: 'linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%)',
           color: 'white',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           border: 'none',
           borderRadius: 2
         }}>
           <Typography variant="subtitle2" fontWeight={700} mb={0.5}>
             {dateString}
           </Typography>
-          <Typography variant="body2">
+          <Typography variant="body2" sx={{ mb: 0.5 }}>
             Consumption: <span style={{ fontWeight: 700 }}>{payload[0].value.toLocaleString()} Wh</span>
+          </Typography>
+          <Typography variant="body2">
+            Total Energy: <span style={{ fontWeight: 700 }}>{energyConsumptionDisplay} Wh</span>
           </Typography>
         </Card>
       );
@@ -513,7 +720,7 @@ const DetailPage = () => {
           y={0} 
           dy={16} 
           textAnchor="end" 
-          fill="#1976d2"
+          fill="#64b5f6"
           fontSize={12}
           fontWeight={600}
           transform="rotate(-45)"
@@ -528,71 +735,23 @@ const DetailPage = () => {
     if (!energyData || !energyData.length) return null;
     
     const totalUsage = energyData.reduce((sum, item) => sum + (item.totalValue || 0), 0);
-    let averageUsage;
-    let peakUsage = energyData.length > 0 ? Math.max(...energyData.map(item => item.totalValue || 0)) : 0;
-    
-    switch (timeRange) {
-      case '12h':
-        averageUsage = totalUsage / 12;
-        break;
-      case '24h':
-        averageUsage = totalUsage / 24;
-        break;
-      case '7d':
-        averageUsage = totalUsage / 7;
-        break;
-      case '15d':
-        averageUsage = totalUsage / 15;
-        break;
-      case '30d':
-        averageUsage = totalUsage / 30;
-        break;
-      case '12m':
-      case 'yearly':
-        averageUsage = totalUsage / 12;
-        break;
-      default:
-        averageUsage = totalUsage;
-    }
+    const peakUsage = energyData.length > 0 ? Math.max(...energyData.map(item => item.totalValue || 0)) : 0;
+    const averageUsage = energyData.length > 0 ? totalUsage / energyData.length : 0;
     
     return {
       totalUsage,
       averageUsage: Math.round(averageUsage),
       peakUsage
     };
-  }, [energyData, timeRange]);
+  }, [energyData]);
 
   const additionalStats = useMemo(() => {
     return additionalEnergyData.map(data => {
       if (!data || !data.length) return null;
       
       const totalUsage = data.reduce((sum, item) => sum + (item.totalValue || 0), 0);
-      let averageUsage;
-      let peakUsage = data.length > 0 ? Math.max(...data.map(item => item.totalValue || 0)) : 0;
-      
-      switch (timeRange) {
-        case '12h':
-          averageUsage = totalUsage / 12;
-          break;
-        case '24h':
-          averageUsage = totalUsage / 24;
-          break;
-        case '7d':
-          averageUsage = totalUsage / 7;
-          break;
-        case '15d':
-          averageUsage = totalUsage / 15;
-          break;
-        case '30d':
-          averageUsage = totalUsage / 30;
-          break;
-        case '12m':
-        case 'yearly':
-          averageUsage = totalUsage / 12;
-          break;
-        default:
-          averageUsage = totalUsage;
-      }
+      const peakUsage = data.length > 0 ? Math.max(...data.map(item => item.totalValue || 0)) : 0;
+      const averageUsage = data.length > 0 ? totalUsage / data.length : 0;
       
       return {
         totalUsage,
@@ -600,7 +759,7 @@ const DetailPage = () => {
         peakUsage
       };
     });
-  }, [additionalEnergyData, timeRange]);
+  }, [additionalEnergyData]);
 
   const isLoading = loading || additionalLoading.some(loading => loading);
 
@@ -613,7 +772,7 @@ const DetailPage = () => {
         alignItems="center" 
         minHeight="300px"
         sx={{
-          background: '#1976d2',
+          background: 'linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%)',
           borderRadius: 3,
           p: 4,
           color: 'white'
@@ -630,158 +789,79 @@ const DetailPage = () => {
       <Card sx={{ 
         p: 4, 
         textAlign: 'center', 
-        background: '#f44336',
+        background: 'linear-gradient(135deg, #ef5350 0%, #e53935 100%)',
         color: 'white',
-        borderRadius: 3
+        borderRadius: 3,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
       }}>
         <Typography variant="h6" fontWeight={600}>{error}</Typography>
       </Card>
     );
   }
 
-  // Table component for displaying energy usage data
+  // Table component for displaying energy consumption data only
   const renderTable = (tableData, deviceInfo, index = -1) => {
     const colors = [
-      { primary: '#1976d2', light: '#e3f2fd' },
-      { primary: '#388e3c', light: '#e8f5e8' },
-      { primary: '#f57c00', light: '#fff3e0' },
-      { primary: '#7b1fa2', light: '#f3e5f5' }
+      { primary: '#64b5f6', light: '#e3f2fd', header: '#bbdefb' },
+      { primary: '#81c784', light: '#e8f5e9', header: '#c8e6c9' },
+      { primary: '#ffb74d', light: '#fff3e0', header: '#ffe0b2' },
+      { primary: '#ba68c8', light: '#f3e5f5', header: '#e1bee7' }
     ];
     
     const colorScheme = index >= 0 ? colors[index % colors.length] : colors[0];
 
+    // Group table data by date
+    const groupedByDate = tableData.reduce((acc, row) => {
+      const date = row.date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(row);
+      return acc;
+    }, {});
+
+    const dates = Object.keys(groupedByDate).sort();
+
     return (
-      <Card elevation={2} sx={{ 
+      <Card elevation={0} sx={{ 
         borderRadius: 2,
         background: 'white',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
         overflow: 'hidden',
         mt: 3
       }}>
         {/* Header */}
         <Box sx={{ 
-          background: colorScheme.primary,
+          background: `linear-gradient(135deg, ${colorScheme.primary} 0%, ${colorScheme.primary}dd 100%)`,
           p: 2,
           color: 'white'
         }}>
-          <Grid container alignItems="center" justifyContent="space-between">
-            <Grid item>
-              <Typography variant="h6" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                📊 Energy Usage Table - {deviceInfo.deviceName}
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-                {tableFilterType === 'date' ? `Hourly data for ${tableSelectedDate}` : `Data for ${timeRanges.find(r => r.value === tableTimeRange)?.label}`}
-              </Typography>
-            </Grid>
-            <Grid item>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <ToggleButtonGroup
-                  value={tableFilterType}
-                  exclusive
-                  onChange={(e, newFilterType) => {
-                    if (newFilterType !== null) {
-                      setTableFilterType(newFilterType);
-                    }
-                  }}
-                  size="small"
-                  sx={{
-                    '& .MuiToggleButton-root': {
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      '&.Mui-selected': {
-                        backgroundColor: 'rgba(255,255,255,0.3)',
-                        color: 'white'
-                      }
-                    }
-                  }}
-                >
-                  <ToggleButton value="duration">Duration</ToggleButton>
-                  <ToggleButton value="date">Date</ToggleButton>
-                </ToggleButtonGroup>
-                
-                {tableFilterType === 'date' ? (
-                  <TextField
-                    type="date"
-                    value={tableSelectedDate}
-                    onChange={(e) => setTableSelectedDate(e.target.value)}
-                    size="small"
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        '& fieldset': {
-                          borderColor: 'rgba(255,255,255,0.3)'
-                        }
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: 'white'
-                      }
-                    }}
-                  />
-                ) : (
-                  <FormControl size="small" variant="outlined">
-                    <Select
-                      value={tableTimeRange}
-                      onChange={(e) => setTableTimeRange(e.target.value)}
-                      sx={{
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        borderRadius: 1,
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255,255,255,0.3)'
-                        },
-                        '& .MuiSvgIcon-root': {
-                          color: 'white'
-                        }
-                      }}
-                    >
-                      {timeRanges.map((range) => (
-                        <MenuItem key={range.value} value={range.value}>
-                          {range.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-                
-                <Button
-                  variant="contained"
-                  onClick={() => fetchTableData(meterId, index)}
-                  disabled={tableLoading}
-                  size="small"
-                  sx={{
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    '&:hover': {
-                      backgroundColor: 'rgba(255,255,255,0.3)'
-                    }
-                  }}
-                >
-                  {tableLoading ? 'Loading...' : 'Refresh'}
-                </Button>
-              </Stack>
-            </Grid>
-          </Grid>
+          <Typography variant="h6" fontWeight={600} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            📊 Energy Consumption History
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.95, mt: 0.5 }}>
+            Data from {startDate} to {endDate} (Interval: {intervalOptions.find(i => i.value === appliedInterval)?.label})
+          </Typography>
         </Box>
 
         {/* Table */}
-        <TableContainer sx={{ maxHeight: 400 }}>
+        <TableContainer sx={{ maxHeight: 600, overflowX: 'auto' }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow sx={{ 
-                backgroundColor: colorScheme.light,
+                backgroundColor: colorScheme.header,
                 '& .MuiTableCell-head': { 
-                  color: colorScheme.primary, 
-                  fontWeight: 700,
+                  color: '#424242', 
+                  fontWeight: 600,
                   fontSize: '0.875rem',
-                  borderBottom: `2px solid ${colorScheme.primary}`
+                  borderBottom: `2px solid ${colorScheme.primary}`,
+                  whiteSpace: 'nowrap'
                 }
               }}>
-                <TableCell>Device Name</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Time</TableCell>
-                <TableCell align="right">Energy Consumption (Wh)</TableCell>
+                <TableCell align="right">Total Value (Wh)</TableCell>
+                <TableCell align="right">Total Energy Consumption (Wh)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -794,21 +874,45 @@ const DetailPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                tableData.map((row, rowIndex) => (
-                  <TableRow 
-                    key={rowIndex}
-                    sx={{ 
-                      '&:nth-of-type(odd)': { backgroundColor: colorScheme.light },
-                      '&:hover': { backgroundColor: colorScheme.light }
-                    }}
-                  >
-                    <TableCell sx={{ fontWeight: 500 }}>{row.name}</TableCell>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell>{row.hour}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, color: colorScheme.primary }}>
-                      {row.energyConsumption.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
+                dates.map((date, dateIndex) => (
+                  <React.Fragment key={date}>
+                    {/* Date Header Row */}
+                    <TableRow sx={{ backgroundColor: colorScheme.light }}>
+                      <TableCell 
+                        colSpan={4}
+                        sx={{ 
+                          fontWeight: 700,
+                          fontSize: '1rem',
+                          color: colorScheme.primary,
+                          py: 1.5,
+                          borderBottom: `2px solid ${colorScheme.primary}`
+                        }}
+                      >
+                        📅 {format(new Date(date + 'T00:00:00'), 'EEEE, MMMM d, yyyy')}
+                      </TableCell>
+                    </TableRow>
+                    {/* Data Rows for this Date */}
+                    {groupedByDate[date].map((row, rowIndex) => (
+                      <TableRow 
+                        key={`${date}-${rowIndex}`}
+                        sx={{ 
+                          '&:nth-of-type(even)': { backgroundColor: '#fafafa' },
+                          '&:hover': { backgroundColor: colorScheme.light }
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 500, color: '#616161' }}>
+                          {format(new Date(row.timestamp), 'yyyy-MM-dd')}
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 500, color: '#616161' }}>{row.time}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: colorScheme.primary }}>
+                          {row.totalValue?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '0'}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600, color: colorScheme.primary }}>
+                          {row.totalEnergyConsumption?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '0'}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </React.Fragment>
                 ))
               )}
             </TableBody>
@@ -820,10 +924,10 @@ const DetailPage = () => {
 
   const renderChart = (data, deviceInfo, associatedEntities, stats, index = -1) => {
     const chartColors = [
-      { primary: '#1976d2', light: '#e3f2fd' },
-      { primary: '#388e3c', light: '#e8f5e8' },
-      { primary: '#f57c00', light: '#fff3e0' },
-      { primary: '#7b1fa2', light: '#f3e5f5' }
+      { primary: '#64b5f6', light: '#e3f2fd' },
+      { primary: '#81c784', light: '#e8f5e9' },
+      { primary: '#ffb74d', light: '#fff3e0' },
+      { primary: '#ba68c8', light: '#f3e5f5' }
     ];
     
     const colorIndex = index >= 0 ? (index % chartColors.length) : 0;
@@ -836,47 +940,22 @@ const DetailPage = () => {
           <Card elevation={0} sx={{ 
             borderRadius: 3,
             background: 'white',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             overflow: 'hidden'
           }}>
             <Box sx={{ 
-              background: colors.primary,
+              background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
               p: 3,
               color: 'white'
             }}>
-              <Grid container alignItems="center" justifyContent="space-between">
-                <Grid item>
+              <Grid container alignItems="center" justifyContent="space-between" spacing={2}>
+                <Grid item xs={12}>
                   <Typography variant="h5" fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {deviceInfo.deviceName}
                   </Typography>
-                  <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5 }}>
+                  <Typography variant="body1" sx={{ opacity: 0.95, mt: 0.5 }}>
                     {deviceInfo.entityName} • Current: <strong>{deviceInfo.state} Wh</strong>
                   </Typography>
-                </Grid>
-                <Grid item>
-                  <FormControl size="small" variant="outlined">
-                    <Select
-                      value={timeRange}
-                      onChange={(e) => setTimeRange(e.target.value)}
-                      sx={{
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        borderRadius: 2,
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255,255,255,0.3)'
-                        },
-                        '& .MuiSvgIcon-root': {
-                          color: 'white'
-                        }
-                      }}
-                    >
-                      {timeRanges.map((range) => (
-                        <MenuItem key={range.value} value={range.value}>
-                          {range.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
                 </Grid>
               </Grid>
             </Box>
@@ -903,12 +982,12 @@ const DetailPage = () => {
                     <CartesianGrid 
                       strokeDasharray="3 3" 
                       vertical={false}  
-                      stroke="rgba(25, 118, 210, 0.1)"
+                      stroke="rgba(100, 181, 246, 0.2)"
                     />
                     <XAxis
                       dataKey="time"
                       tick={<XAxisTick />}
-                      interval={timeRange === '12h' ? 2 : timeRange === '24h' ? 3 : timeRange === 'yearly' ? 0 : 'preserveEnd'}
+                      interval={appliedInterval === '1h' ? 2 : appliedInterval === '2h' ? 1 : appliedInterval === '1d' ? 0 : 'preserveEnd'}
                       height={70}
                     />
                     <YAxis
@@ -928,7 +1007,7 @@ const DetailPage = () => {
                     <Tooltip 
                       content={<CustomTooltip />} 
                       cursor={{ 
-                        fill: 'rgba(25, 118, 210, 0.1)',
+                        fill: 'rgba(100, 181, 246, 0.15)',
                         radius: 4
                       }}
                     />
@@ -969,10 +1048,10 @@ const DetailPage = () => {
             <Card elevation={0} sx={{ 
               borderRadius: 3,
               background: 'white',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
             }}>
               <Box sx={{ 
-                background: colors.primary,
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
                 p: 2,
                 color: 'white'
               }}>
@@ -986,55 +1065,55 @@ const DetailPage = () => {
                   <Grid container spacing={1.5}>
                     <Grid item xs={4}>
                       <Box sx={{ 
-                        background: colors.primary,
+                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
                         borderRadius: 1.5,
                         p: 1.5,
                         color: 'white',
                         textAlign: 'center'
                       }}>
-                        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>
+                        <Typography variant="caption" sx={{ opacity: 0.95, display: 'block' }}>
                           💡 Total
                         </Typography>
                         <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem' }}>
                           {stats.totalUsage.toLocaleString()}
                         </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.8 }}>Wh</Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.9 }}>Wh</Typography>
                       </Box>
                     </Grid>
                     
                     <Grid item xs={4}>
                       <Box sx={{ 
-                        background: colors.primary,
+                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
                         borderRadius: 1.5,
                         p: 1.5,
                         color: 'white',
                         textAlign: 'center'
                       }}>
-                        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>
-                          📈 Average Daily
+                        <Typography variant="caption" sx={{ opacity: 0.95, display: 'block' }}>
+                          📈 Average
                         </Typography>
                         <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem' }}>
                           {stats.averageUsage.toLocaleString()}
                         </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.8 }}>Wh</Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.9 }}>Wh</Typography>
                       </Box>
                     </Grid>
                     
                     <Grid item xs={4}>
                       <Box sx={{ 
-                        background: colors.primary,
+                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
                         borderRadius: 1.5,
                         p: 1.5,
                         color: 'white',
                         textAlign: 'center'
                       }}>
-                        <Typography variant="caption" sx={{ opacity: 0.9, display: 'block' }}>
+                        <Typography variant="caption" sx={{ opacity: 0.95, display: 'block' }}>
                           ⚡ Peak
                         </Typography>
                         <Typography variant="h6" fontWeight={700} sx={{ fontSize: '1rem' }}>
                           {stats.peakUsage.toLocaleString()}
                         </Typography>
-                        <Typography variant="caption" sx={{ opacity: 0.8 }}>Wh</Typography>
+                        <Typography variant="caption" sx={{ opacity: 0.9 }}>Wh</Typography>
                       </Box>
                     </Grid>
                   </Grid>
@@ -1046,10 +1125,10 @@ const DetailPage = () => {
             <Card elevation={0} sx={{ 
               borderRadius: 3,
               background: 'white',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.1)'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
             }}>
               <Box sx={{ 
-                background: colors.primary,
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
                 p: 2,
                 color: 'white'
               }}>
@@ -1076,7 +1155,7 @@ const DetailPage = () => {
                       <Box 
                         key={entity._id}
                         sx={{ 
-                          background: colors.primary,
+                          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primary}dd 100%)`,
                           borderRadius: 1.5,
                           p: 1.5,
                           color: 'white',
@@ -1121,57 +1200,179 @@ const DetailPage = () => {
   return (
     <Box sx={{ 
       p: 3, 
-      background: '#f5f5f5',
+      background: '#f8f9fa',
       minHeight: '100vh'
     }}>
-      {/* Header */}
-      <Box sx={{ 
-        background: '#1976d2',
-        borderRadius: 3,
-        p: 4,
-        color: 'white',
-        boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-        mb: 3
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs 
+        separator={<ChevronRight fontSize="small" />} 
+        aria-label="breadcrumb"
+        sx={{ mb: 2 }}
+      >
+        <Link
+          component="button"
+          variant="body1"
+          onClick={() => navigate('/energy/meters')}
+          sx={{
+            color: '#64b5f6',
+            textDecoration: 'none',
+            '&:hover': {
+              textDecoration: 'underline',
+              color: '#42a5f5'
+            },
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5
+          }}
+        >
+          <Home fontSize="small" />
+          Energy Meters
+        </Link>
+        <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center' }}>
+          {deviceName || 'Energy Meter Detail'}
+        </Typography>
+      </Breadcrumbs>
+
+      {/* Filters Section at Top */}
+      <Card elevation={0} sx={{ 
+        borderRadius: 2,
+        background: 'white',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+        mb: 3,
+        p: 3
       }}>
-        <Grid container alignItems="center" justifyContent="space-between">
-          <Grid item>
-            <Typography variant="h3" fontWeight={700} gutterBottom sx={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
-              ⚡ Energy Consumption Analysis
+          <Typography variant="h6" fontWeight={600} sx={{ mb: 2, color: '#424242' }}>
+            📅 Filter Options for {deviceName}
+          </Typography>
+        <Grid container spacing={3} alignItems="flex-end">
+          <Grid item xs={12} sm={3}>
+            <Typography variant="body2" sx={{ mb: 1, color: '#757575', fontWeight: 500 }}>
+              Start Date
             </Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Select Start Date"
+                value={dateRange[0]}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setDateRange([newValue, dateRange[1]]);
+                  }
+                }}
+                maxDate={dateRange[1] || dayjs()}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small',
+                    sx: {
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#f5f5f5',
+                        '&:hover': {
+                          backgroundColor: '#eeeeee'
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
+            </LocalizationProvider>
           </Grid>
-          <Grid item>
+          <Grid item xs={12} sm={3}>
+            <Typography variant="body2" sx={{ mb: 1, color: '#757575', fontWeight: 500 }}>
+              End Date
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Select End Date"
+                value={dateRange[1]}
+                onChange={(newValue) => {
+                  if (newValue) {
+                    setDateRange([dateRange[0], newValue]);
+                  }
+                }}
+                minDate={dateRange[0]}
+                maxDate={dayjs()}
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    size: 'small',
+                    sx: {
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: '#f5f5f5',
+                        '&:hover': {
+                          backgroundColor: '#eeeeee'
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
+            </LocalizationProvider>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <Typography variant="body2" sx={{ mb: 1, color: '#757575', fontWeight: 500 }}>
+              Select Interval
+            </Typography>
+            <FormControl fullWidth size="small" variant="outlined">
+              <Select
+                value={interval}
+                onChange={(e) => setInterval(e.target.value)}
+                sx={{
+                  backgroundColor: '#f5f5f5',
+                  '&:hover': {
+                    backgroundColor: '#eeeeee'
+                  }
+                }}
+              >
+                {intervalOptions.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={3} sx={{ display: 'flex', alignItems: 'flex-end' }}>
             <Button
               variant="contained"
-              onClick={() => setShowTable(!showTable)}
+              onClick={applyFilters}
+              disabled={isLoading}
+              fullWidth
               sx={{
-                backgroundColor: 'rgba(255,255,255,0.2)',
+                background: 'linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%)',
                 color: 'white',
+                py: 1.5,
                 borderRadius: 2,
-                px: 3,
-                py: 1,
+                textTransform: 'none',
+                fontWeight: 600,
+                boxShadow: '0 2px 8px rgba(100, 181, 246, 0.3)',
                 '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.3)'
+                  background: 'linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%)',
+                  boxShadow: '0 4px 12px rgba(100, 181, 246, 0.4)'
+                },
+                '&:disabled': {
+                  background: '#b0bec5',
+                  color: 'white'
                 }
               }}
+              startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
             >
-              {showTable ? '📊 Hide Table' : '📊 Show Table'}
+              {isLoading ? 'Loading...' : 'Apply Filters'}
             </Button>
           </Grid>
         </Grid>
-      </Box>
-
+      </Card>
       {/* First Chart */}
       {renderChart(
         chartData, 
-        { deviceName, entityName, state }, 
+        { entityName, state }, 
         associatedEntities, 
         stats
       )}
 
       {/* Table for First Chart */}
-      {showTable && renderTable(
+      {renderTable(
         tableData, 
-        { deviceName, entityName, state }, 
+        { deviceName, entityName, state },
         -1
       )}
 
@@ -1196,9 +1397,9 @@ const DetailPage = () => {
             )}
 
             {/* Table for Additional Chart */}
-            {showTable && renderTable(
+            {renderTable(
               additionalTableData[index] || [], 
-              deviceInfo, 
+              deviceInfo,
               index
             )}
           </React.Fragment>

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { ProSidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Box, IconButton, Typography, useTheme } from "@mui/material";
+import { Box, IconButton, Typography, useTheme, useMediaQuery } from "@mui/material";
 import { Link } from "react-router-dom";
 import "react-pro-sidebar/dist/css/styles.css";
 import { tokens } from "../../theme";
@@ -29,7 +29,7 @@ import WaterDamageIcon from '@mui/icons-material/WaterDamage';
 // import EditDocumentIcon from '@mui/icons-material/EditDocument';
 import EditIcon from '@mui/icons-material/Edit';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-const Item = ({ title, to, icon, selected, setSelected }) => {
+const Item = ({ title, to, icon, selected, setSelected, onItemClick }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   return (
@@ -38,7 +38,12 @@ const Item = ({ title, to, icon, selected, setSelected }) => {
       style={{
         color: colors.grey[100],
       }}
-      onClick={() => setSelected(title)}
+      onClick={() => {
+        setSelected(title);
+        if (onItemClick) {
+          onItemClick();
+        }
+      }}
       icon={icon}
     >
       <Typography>{title}</Typography>
@@ -47,18 +52,44 @@ const Item = ({ title, to, icon, selected, setSelected }) => {
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ isSidebar, setIsSidebar }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+  const isMobile = useMediaQuery((theme) => theme.breakpoints.down('md'));
+
+  // Hide sidebar completely on mobile if isSidebar is false
+  if (isMobile && !isSidebar) {
+    return null;
+  }
 
   return (
-    <Box
-      sx={{
-        "& .pro-sidebar-inner": {
-          background: `${colors.primary[400]} !important`,
-        },
+    <>
+      {/* Backdrop overlay for mobile */}
+      {isMobile && isSidebar && (
+        <Box
+          onClick={() => setIsSidebar(false)}
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1200,
+          }}
+        />
+      )}
+      <Box
+        sx={{
+          position: isMobile ? 'fixed' : 'relative',
+          zIndex: isMobile ? 1300 : 'auto',
+          height: isMobile ? '100vh' : 'auto',
+          display: isMobile && !isSidebar ? 'none' : 'block',
+          "& .pro-sidebar-inner": {
+            background: `${colors.primary[400]} !important`,
+          },
         "& .pro-icon-wrapper": {
           backgroundColor: "transparent !important",
         },
@@ -92,7 +123,7 @@ const Sidebar = () => {
                 ml="15px"
               >
                 <Typography variant="h3" color={colors.grey[100]}>
-                  IOT Automation
+                  Automation
                 </Typography>
                 <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
                   <MenuOutlinedIcon />
@@ -103,15 +134,6 @@ const Sidebar = () => {
 
           {!isCollapsed && (
             <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
-                <img
-                  alt="profile-user"
-                  width="100px"
-                  height="100px"
-                  src={`../../assets/iots.png`}
-                  style={{ cursor: "pointer", borderRadius: "50%" }}
-                />
-              </Box>
               <Box textAlign="center">
                 <Typography
                   variant="h2"
@@ -122,7 +144,7 @@ const Sidebar = () => {
                   IOT
                 </Typography>
                 <Typography variant="h5" color={colors.greenAccent[500]}>
-                  Cloud Services
+                  The Cloud Services
                 </Typography>
               </Box>
             </Box>
@@ -135,6 +157,11 @@ const Sidebar = () => {
               icon={<HomeOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Typography
               variant="h6"
@@ -187,6 +214,11 @@ const Sidebar = () => {
               icon={<PeopleOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             /> */}
             {/* <Item title="User Login"
               to="/user/login"
@@ -201,6 +233,11 @@ const Sidebar = () => {
               icon={<ListAltIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Item
               title="Floor Plans"
@@ -208,6 +245,11 @@ const Sidebar = () => {
               icon={<ViewInArIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             {/* <Item
               title="Invoices Balances"
@@ -215,6 +257,11 @@ const Sidebar = () => {
               icon={<ReceiptOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             /> */}
             <Typography
               variant="h6"
@@ -229,6 +276,11 @@ const Sidebar = () => {
               icon={<OnDeviceTrainingIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Item
               title="Entity Historic Data"
@@ -236,6 +288,11 @@ const Sidebar = () => {
               icon={<OnDeviceTrainingIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Typography
               variant="h6"
@@ -250,6 +307,11 @@ const Sidebar = () => {
               icon={<AddToQueueIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Item
               title="Add Entity"
@@ -257,6 +319,11 @@ const Sidebar = () => {
               icon={<DeviceHubIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
              <Item
               title="Edit Devices"
@@ -264,6 +331,11 @@ const Sidebar = () => {
               icon={<EditIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
              {/* <Item
               title="Edit Entities"
@@ -271,6 +343,11 @@ const Sidebar = () => {
               icon={<EditIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             /> */}
             <Item
               title="Code Editor"
@@ -278,6 +355,11 @@ const Sidebar = () => {
               icon={<CodeIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Item
               title="FAQ Page"
@@ -285,6 +367,11 @@ const Sidebar = () => {
               icon={<HelpOutlineOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
 
 <Typography
@@ -300,6 +387,11 @@ const Sidebar = () => {
               icon={<BarChartOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
 
             <Typography
@@ -315,6 +407,11 @@ const Sidebar = () => {
               icon={<AcUnitIcon/>}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
             <Item
               title="Add Air Conditioner"
@@ -322,6 +419,11 @@ const Sidebar = () => {
               icon={<TimelineOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
 
 <Typography
@@ -337,12 +439,18 @@ const Sidebar = () => {
               icon={<WaterDamageIcon/>}
               selected={selected}
               setSelected={setSelected}
+              onItemClick={() => {
+                if (isMobile && setIsSidebar) {
+                  setIsSidebar(false);
+                }
+              }}
             />
     
           </Box>
         </Menu>
       </ProSidebar>
     </Box>
+    </>
   );
 };
 
